@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-primary: #202124;
+  --background-secondary: #2A2B2E;
+  --primary: #383838; 
+  --primary-lighter: #4A4A4A;
+  --secondary: #606060;
+  --text-main: #FFFFFF;
+  --text: #CBD5E1;
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: rgba(255, 255, 255, 0.87);
+  background-color: transparent;
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--background-primary);
+  color: inherit;
+}
+
+h2 {
+  color: var(--text);
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  margin: 0 auto;
+}
+
+button {
+  background-color: var(--primary);
+  color: var(--secondary);
+}
+
+button:active {
+  border: 1px solid var(--text-main);
+}
+
+@media (min-width: 1024px) {
+  .shadow {
+    box-shadow: 
+      3px 0 3px rgba(0, 0, 0, 0.25),   /* Right side shadow */
+      -3px 0 3px rgba(0, 0, 0, 0.25),  /* Left side shadow */
+      0 3px 3px rgba(0, 0, 0, 0.25),   /* Bottom side shadow */
+      0 -1px 3px rgba(0, 0, 0, 0.25);  /* Top side shadow */
+  }
+}
+
+.icon {
+  color: white; 
+  transition: color 0.3s ease;
+}
+.icon:hover {
+  color: #C9302C;
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--primary-lighter); /* Scrollbar thumb and track colors for Firefox */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--primary); /* Thumb color */
+    border-radius: 6px;
+    border: 3px solid var(--primary-lighter); /* Adds padding around thumb */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--primary-lighter); /* Track color */
+  }
+}
