@@ -8,7 +8,10 @@ const httpStatusCodes = {
   400: { status: "Bad Request", description: "Request was invalid" },
   401: { status: "Unauthorized", description: "No API key was found" },
   403: { status: "Forbidden", description: "The API key is invalid" },
-  405: { status: "Method Not Allowed", description: "Incorrect HTTP method provided" },
+  405: {
+    status: "Method Not Allowed",
+    description: "Incorrect HTTP method provided",
+  },
   429: { status: "Too Many Requests", description: "Client is rate limited" },
   500: {
     status: "Internal Server Error",
@@ -34,7 +37,10 @@ export const fetchAllCountries = async () => {
         error
       );
     } else {
-      console.log("An error occurred without a response from the server:", error);
+      console.log(
+        "An error occurred without a response from the server:",
+        error
+      );
     }
     return;
   }
