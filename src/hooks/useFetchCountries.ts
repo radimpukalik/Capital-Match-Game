@@ -1,11 +1,18 @@
 import { useState, useEffect } from "react";
 import { fetchAllCountries } from "../api/apiService";
-import { CountriesByRegion, IObject } from "../types";
 import MockData from "../MOCK_DATA.json";
 interface Country {
   name: string;
   capital: string;
   region: string;
+}
+
+export interface CountriesByRegion {
+  [region: string]: { [country: string]: string };
+}
+
+interface IObject {
+  [key: string]: string;
 }
 
 const useFetchCountries = () => {
@@ -35,16 +42,19 @@ const useFetchCountries = () => {
           (country) => country.name !== country.capital
         );
 
-        const formattedData: CountriesByRegion = filteredCountryArray.reduce((acc, country) => {
-          const { name, capital, region } = country;
-          return {
-            ...acc,
-            [region]: {
-              ...acc[region],
-              [name]: capital,
-            },
-          };
-        }, {} as CountriesByRegion);
+        const formattedData: CountriesByRegion = filteredCountryArray.reduce(
+          (acc, country) => {
+            const { name, capital, region } = country;
+            return {
+              ...acc,
+              [region]: {
+                ...acc[region],
+                [name]: capital,
+              },
+            };
+          },
+          {} as CountriesByRegion
+        );
 
         setCountriesByRegion(formattedData);
         setLoading(false);

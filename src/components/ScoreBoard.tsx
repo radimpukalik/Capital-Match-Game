@@ -1,15 +1,14 @@
-import { Dispatch, FC } from "react";
-import { IPlayingMode, DifficultyNames } from "../types";
-import { handleTimeConversion } from "../utils";
 import { ArrowLeftFromLine, Trash2 } from "lucide-react";
+import { FC } from "react";
+import useGameStore from "../hooks/useGameStore";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-interface Props {
-  setPlayingMode: Dispatch<React.SetStateAction<IPlayingMode>>;
-}
+import { handleTimeConversion } from "../utils/handleTimeConversion";
 
-const ScoreBoard: FC<Props> = ({ setPlayingMode }) => {
+const ScoreBoard: FC = () => {
   const { getItems, removeItemById } = useLocalStorage("match-score", []);
   const matchData = getItems();
+
+  const setPlayingMode = useGameStore((s) => s.setPlayingMode);
 
   return (
     <>
@@ -55,22 +54,22 @@ const ScoreBoard: FC<Props> = ({ setPlayingMode }) => {
                 >
                   <div className="p-2 text-center my-auto">#{index + 1}</div>
                   <div className="p-2 border-l border-secondary text-center my-auto">
-                    {match.rightMatches}/{match.citiesLeft + match.rightMatches}
+                    {match.rightMatch}/{match.citiesLeft + match.rightMatch}
                   </div>
                   <div className="p-2 border-l border-secondary text-center my-auto">
-                    {DifficultyNames[match.difficulty]}
+                    {match.difficulty}
                   </div>
                   <div className="p-2 border-l border-secondary text-center my-auto">
-                    {match.rightMatches}
+                    {match.rightMatch}
                   </div>
                   <div className="p-2 border-l border-secondary text-center my-auto">
-                    {match.wrongMatches}
+                    {match.wrongMatch}
                   </div>
                   <div className="p-2 border-l border-secondary text-center my-auto">
                     {Math.round(match.accuracy)}%
                   </div>
                   <div className="p-2 border-l border-secondary text-center my-auto">
-                    {handleTimeConversion(match.timeInS)}
+                    {handleTimeConversion(match.time)}
                   </div>
                   <button
                     className="p-2 border-l border-secondary text-center flex justify-center items-center icon"
@@ -87,7 +86,7 @@ const ScoreBoard: FC<Props> = ({ setPlayingMode }) => {
       <div className="flex justify-center gap-2 lg:bg-background-secondary p-2 mt-auto">
         <button
           className="max-w-[20rem] text-black w-full bg-mauve4 hover:bg-mauve5 focus:shadow-mauve7 inline-flex gap-1 h-[35px] items-center justify-center rounded-[4px] px-[15px] font-medium leading-none outline-none focus:shadow-[0_0_0_2px]"
-          onClick={() => setPlayingMode((prev) => ({ ...prev, isPlaying: false, isInMenu: true }))}
+          onClick={() => setPlayingMode("isInMenu")}
         >
           <div>
             <ArrowLeftFromLine />

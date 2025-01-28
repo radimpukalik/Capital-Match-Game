@@ -1,189 +1,183 @@
-import { Dispatch, FC, useEffect, useState } from "react";
-import { IGameData, IMatchStats, IObject, IPlayingMode } from "../types";
-import Confetti from "./Confetti";
-import ProgressDemo from "./ProgressDemo";
-import { SquareCheck, SquareX } from "lucide-react";
-import TimerComponent from "./TimerComponent";
+import { FC, useEffect, useRef, useState } from "react";
+import useGameStore from "../hooks/useGameStore";
+import { shuffleArray } from "../utils/shuffleArray";
+import { addButtonStyles, removeButtonStyles } from "../utils/updateButtonStyles";
 import Alert from "./Alert";
-import { calculateAccuracy } from "../utils";
+import GameStatsDisplay from "./GameStatsDisplay";
+import WinningScreen from "./WinningScreen";
+import { calculateAccuracy } from "../utils/calculateAccuracy";
+import { IStats } from "../types/IStats";
 
-interface IProps {
-  matchStats: IMatchStats;
-  setMatchStats: Dispatch<React.SetStateAction<IMatchStats>>;
-  setPlayingMode: Dispatch<React.SetStateAction<IPlayingMode>>;
-  gameData: IGameData;
-  setGameData: Dispatch<React.SetStateAction<IGameData>>;
+export type GameTuple = [string, string];
+
+const difficultyLevelMap = {
+  Easy: 3,
+  Medium: 6,
+  Hard: 9,
+};
+
+interface Props {
+  gameData: GameTuple[];
 }
 
-const Game: FC<IProps> = ({ matchStats, setMatchStats, setPlayingMode, gameData, setGameData }) => {
-  const [buttonColor, setButtonColor] = useState<IObject>({});
+const Game: FC<Props> = ({ gameData }) => {
+  // useStates
   const [clickedGameItems, setClickedGameItems] = useState<string[]>([]);
-  const [gameDataPairs, setGameDataPairs] = useState<string[][]>([]);
-  const [gameArray, setGameArray] = useState<string[]>([]);
+  const [data, setData] = useState<GameTuple[]>(gameData);
+  const [playerData, setPlayerData] = useState<string[]>([]);
+  const [stats, setStats] = useState<IStats>({
+    rightMatch: 0,
+    wrongMatch: 0,
+    citiesLeft: 0,
+    accuracy: 0,
+  });
+  // refs
+  const incrementRef = useRef(false);
+  const isProcessingRef = useRef(false);
+  // derived values
+  const remainingLength = data.length;
+  const totalLength = gameData.length;
+  // zustand hooks
+  const difficulty = useGameStore((s) => s.difficulty);
 
+  // get new data if playerData is empty
   useEffect(() => {
-    setGameDataPairs(Object.entries(gameData.clickedGameRegionData));
-  }, [gameData.clickedGameRegionData]);
-
-  useEffect(() => {
-    setMatchStats((prev) => ({ ...prev, citiesLeft: gameDataPairs.length }));
-
-    if (gameArray.length === 0 && matchStats.difficulty !== null) {
-      const reducedGamePairsArray = gameDataPairs.slice(0, matchStats.difficulty);
-      const flattendAndSortedArray = reducedGamePairsArray.flat().sort(() => Math.random() - 0.5);
-      setGameArray(flattendAndSortedArray);
+    if (playerData.length === 0) {
+      setPlayerData(() => getPlayerData(data));
     }
-  }, [gameDataPairs, matchStats.difficulty]);
+    setStats((prev) => ({ ...prev, citiesLeft: remainingLength }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerData.length]);
 
+  // prevents double increment in strict mode
   useEffect(() => {
-    checkForRightMatch();
+    if (clickedGameItems.length === 0) {
+      incrementRef.current = false;
+    }
   }, [clickedGameItems]);
 
-  const handleGameItemClick = (gameItem: string): void => {
-    if (clickedGameItems.length < 2) {
-      setClickedGameItems((prevItem) =>
-        prevItem.includes(gameItem)
-          ? prevItem.filter((item) => item !== gameItem)
-          : [...prevItem, gameItem]
-      );
-      const newColor = clickedGameItems.includes(gameItem) ? "" : "#3B4CCA";
-      updateButtonColor(newColor, gameItem);
+  const getPlayerData = (data: GameTuple[]): string[] => {
+    if (data.length > 0) {
+      const difficultyNumber = difficultyLevelMap[difficulty];
+      const slicedData = data.slice(0, difficultyNumber);
+      return shuffleArray(slicedData.flat());
+    } else {
+      return [];
     }
   };
 
-  type TColor = "#C9302C" | "#28A745" | "#3B4CCA" | "";
-  const updateButtonColor = (color: TColor, firstItem: string, secondItem?: string) => {
-    setButtonColor(
-      (prevColor): IObject => ({
-        ...prevColor,
-        [firstItem]: color,
-        ...(secondItem && { [secondItem]: color }),
-      })
+  const areTuplesEqual = (tuple1: GameTuple, tuple2: GameTuple): boolean => {
+    return (
+      (tuple1[0] === tuple2[0] && tuple1[1] === tuple2[1]) ||
+      (tuple1[0] === tuple2[1] && tuple1[1] === tuple2[0])
     );
   };
 
-  const incrementRightMatch = (): void => {
-    setMatchStats((prev) => {
-      const newRightMatches = prev.rightMatches + 1;
-      const newAccuracy = calculateAccuracy(newRightMatches, prev.wrongMatches);
-
-      return {
-        ...prev,
-        rightMatches: newRightMatches,
-        accuracy: newAccuracy,
-      };
-    });
+  const removePickedTupleFromPlayerData = (pickedTuple: GameTuple): void => {
+    pickedTuple.map((item) =>
+      setPlayerData((prevData) => prevData.filter((prev) => prev !== item))
+    );
   };
 
-  const incrementWrongMatch = (): void => {
-    setMatchStats((prev) => {
-      const newWrongMatches = prev.wrongMatches + 1;
-      const newAccuracy = calculateAccuracy(prev.rightMatches, newWrongMatches);
-
-      return {
-        ...prev,
-        wrongMatches: newWrongMatches,
-        accuracy: newAccuracy,
-      };
-    });
+  const removePickedTupleFromData = (pickedTuple: GameTuple): void => {
+    setData((prevData) =>
+      prevData.filter((tuple) => !areTuplesEqual(tuple, pickedTuple))
+    );
   };
 
-  const removePairAtIndex = (index: number): void => {
-    setGameDataPairs((prevPairs) => {
-      const updatedPairs = [...prevPairs];
-      const [first, second] = updatedPairs[index];
-
-      const updatedGameArray = gameArray.filter((city) => city !== first && city !== second);
-      setGameArray(updatedGameArray);
-
-      updatedPairs.splice(index, 1);
-      return updatedPairs;
-    });
+  const isPickedTupleRightMatch = (pickedTuple: GameTuple): boolean => {
+    return data.some((tuple) => areTuplesEqual(tuple, pickedTuple));
   };
 
-  const checkForRightMatch = (): void => {
-    if (clickedGameItems.length == 2) {
-      const [firstItem, secondItem] = clickedGameItems;
-      const match = gameDataPairs.find(
-        ([item1, item2]) =>
-          (item1 === firstItem && item2 === secondItem) ||
-          (item1 === secondItem && item2 === firstItem)
-      );
-
-      let matchIndex = -1;
-      if (match) {
-        matchIndex = gameDataPairs.findIndex((pair) => pair === match);
-        updateButtonColor("#28A745", firstItem, secondItem), incrementRightMatch();
-      } else {
-        updateButtonColor("#C9302C", firstItem, secondItem), incrementWrongMatch();
-      }
-
-      setTimeout(() => {
-        setClickedGameItems([]);
-        match ? removePairAtIndex(matchIndex) : updateButtonColor("", firstItem, secondItem);
-      }, 1000);
+  const incrementRightMatches = () => {
+    if (!incrementRef.current) {
+      setStats((prev) => {
+        const newRightMatches = prev.rightMatch + 1;
+        const newAccuracy = calculateAccuracy(newRightMatches, prev.wrongMatch);
+        return { ...prev, rightMatch: newRightMatches, accuracy: newAccuracy };
+      });
+      incrementRef.current = true;
     }
   };
 
-  const handleTimeUpdate = (time: number) => {
-    setMatchStats((prev) => ({ ...prev, timeInS: time }));
+  const incrementWrongMatches = () => {
+    if (!incrementRef.current) {
+      setStats((prev) => {
+        const newWrongMatches = prev.wrongMatch + 1;
+        const newAccuracy = calculateAccuracy(prev.rightMatch, newWrongMatches);
+        return { ...prev, wrongMatch: newWrongMatches, accuracy: newAccuracy };
+      });
+      incrementRef.current = true;
+    }
+  };
+
+  const handleItemClick = (item: string) => {
+    if (isProcessingRef.current) return;
+
+    setClickedGameItems((prev) => {
+      if (prev.includes(item)) {
+        removeButtonStyles([item], "clicked");
+        return prev.filter((prevItem) => prevItem !== item);
+      }
+
+      addButtonStyles([item], "clicked");
+      const newClickedGameItems = [...prev, item];
+
+      if (newClickedGameItems.length === 2) {
+        isProcessingRef.current = true;
+        removeButtonStyles(newClickedGameItems, "clicked");
+        const isValid = isPickedTupleRightMatch(newClickedGameItems as GameTuple);
+
+        isValid
+          ? addButtonStyles(newClickedGameItems, "valid")
+          : addButtonStyles(newClickedGameItems, "invalid");
+
+        setTimeout(() => {
+          if (isValid) {
+            removePickedTupleFromData(newClickedGameItems as GameTuple);
+            removePickedTupleFromPlayerData(newClickedGameItems as GameTuple);
+            removeButtonStyles(newClickedGameItems, "valid");
+            incrementRightMatches();
+          } else {
+            removeButtonStyles(newClickedGameItems, "invalid");
+            incrementWrongMatches();
+          }
+          isProcessingRef.current = false;
+        }, 500);
+        return [];
+      }
+
+      return newClickedGameItems;
+    });
   };
 
   return (
     <div className="h-[400px]">
-      <header className="flex flex-col justify-center gap-3 items-center mb-5">
-        <div className="relative mt-5">
-          <ProgressDemo
-            remainingPairs={gameDataPairs.length}
-            totalPairs={Object.entries(gameData.clickedGameRegionData).length}
-          />
-          <div className={`absolute text-text-main  top-1 font-bold left-[45%] right-[55%]`}>
-            {matchStats.rightMatches}/{Object.entries(gameData.clickedGameRegionData).length}
-          </div>
-        </div>
-        <div className="flex justify-center items-center gap-10">
-          <div className="text-lg font-bold flex justify-center items-center">
-            <SquareCheck color="#28A745" />
-            <span className="text-xl ml-2 text-[#28A745]">{matchStats.rightMatches}</span>
-          </div>
-          <TimerComponent gameDataPairs={gameDataPairs} handleTimeUpdate={handleTimeUpdate} />
-          <div className="text-lg font-bold flex justify-center items-center">
-            <SquareX color="#C9302C" />
-            <span className="text-xl ml-2 text-[#C9302C]">{matchStats.wrongMatches}</span>
-          </div>
-        </div>
-      </header>
+      <section className="flex flex-col justify-center gap-3 items-center mb-5">
+        <GameStatsDisplay
+          stats={stats}
+          remainingLength={remainingLength}
+          totalLength={totalLength}
+        />
+      </section>
 
       <section className="grid grid-wrap gap-4 items-center justify-center grid-cols-2 md:grid-cols-3">
-        {gameArray.map((gameItem, index) => (
+        {playerData.map((item, index) => (
           <button
             className="h-[55px] min-w-[9rem] max-w-[20rem] rounded-md text-text-main border-2 border-secondary font-medium"
-            style={{ backgroundColor: buttonColor[gameItem] || "" }}
+            data-item={item}
             key={index}
-            onClick={() => handleGameItemClick(gameItem)}
+            onClick={() => handleItemClick(item)}
+            disabled={isProcessingRef.current}
           >
-            {gameItem}
+            {item}
           </button>
         ))}
       </section>
 
-      <section>
-        {gameDataPairs.length === 0 && (
-          <div className="flex justify-center items-center flex-col">
-            <h1 className="text-xl text-text font-medium">
-              Congratulations, You've Completed the Matching Game!
-            </h1>
-            <Confetti />
-          </div>
-        )}
-      </section>
+      <WinningScreen remainingLength={remainingLength} />
 
-      <Alert
-        setPlayingMode={setPlayingMode}
-        setMatchStats={setMatchStats}
-        matchStats={matchStats}
-        setGameData={setGameData}
-      />
+      <Alert stats={stats} setStats={setStats} />
     </div>
   );
 };

@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
-import { IMatchStats } from "../types";
+import { useCallback, useState } from "react";
+import { IcompleteStats } from "../types/IStats";
 
-export const useLocalStorage = (key: string, initialValue: IMatchStats[]) => {
-  const [storedValue, setStoredValue] = useState<IMatchStats[]>(() => {
+export const useLocalStorage = (key: string, initialValue: IcompleteStats[]) => {
+  const [storedValue, setStoredValue] = useState<IcompleteStats[]>(() => {
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
@@ -17,7 +17,7 @@ export const useLocalStorage = (key: string, initialValue: IMatchStats[]) => {
   }, [storedValue]);
 
   const setItem = useCallback(
-    (item: IMatchStats) => {
+    (item: IcompleteStats) => {
       try {
         const updatedItems = [item, ...storedValue];
         setStoredValue(updatedItems);

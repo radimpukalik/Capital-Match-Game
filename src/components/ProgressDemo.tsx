@@ -1,4 +1,4 @@
-import React, { FC, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 import * as Progress from "@radix-ui/react-progress";
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
 }
 
 const ProgressDemo: FC<Props> = ({ remainingPairs, totalPairs }) => {
-  const [progress, setProgress] = React.useState<number>(0);
+  const [progress, setProgress] = useState<number>(0);
 
   useEffect(() => {
     const newProgress = ((totalPairs - remainingPairs) / totalPairs) * 100;

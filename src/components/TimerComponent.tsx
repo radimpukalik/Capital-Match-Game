@@ -1,20 +1,26 @@
 import { FC, useEffect, useState } from "react";
 import { Timer } from "lucide-react";
-import { handleTimeConversion } from "../utils";
+import useGameStore from "../hooks/useGameStore";
+import { handleTimeConversion } from "../utils/handleTimeConversion";
 
 interface Props {
-  gameDataPairs?: string[][];
-  handleTimeUpdate: (time: number) => void;
+  isRunning: boolean;
 }
 
-const TimerComponent: FC<Props> = ({ gameDataPairs, handleTimeUpdate }) => {
+const TimerComponent: FC<Props> = ({ isRunning }) => {
   const [timeInS, setTimeInS] = useState(0);
-  let intervalId: number | undefined;
+  const setTime = useGameStore((s) => s.setTime);
 
   useEffect(() => {
-    if (gameDataPairs && gameDataPairs.length !== 0) {
+    let intervalId = null;
+
+    if (isRunning) {
       intervalId = setInterval(() => {
-        setTimeInS((prev) => prev + 1);
+        setTimeInS((prev) => {
+          const newTime = prev + 1;
+          return newTime;
+        });
+        setTime(timeInS + 1);
       }, 1000);
     }
 
@@ -23,11 +29,7 @@ const TimerComponent: FC<Props> = ({ gameDataPairs, handleTimeUpdate }) => {
         clearInterval(intervalId);
       }
     };
-  }, [gameDataPairs]);
-
-  useEffect(() => {
-    handleTimeUpdate(timeInS);
-  }, [timeInS]);
+  }, [isRunning, setTime, timeInS]);
 
   return (
     <div className="text-lg font-bold flex justify-center items-center">

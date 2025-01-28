@@ -1,25 +1,29 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { FC, useState } from "react";
+import { ReactNode, useState } from "react";
 
-interface Props {
-  itemArray: string[];
-  setItem: any;
+interface Props<T extends ReactNode> {
+  itemsArray: readonly T[];
   startIndex?: number;
+  onItemChange: (newItem: T) => void;
 }
 
-const SettingsButton: FC<Props> = ({ itemArray, setItem, startIndex }) => {
+const SettingsButton = <T extends ReactNode>({
+  itemsArray,
+  startIndex,
+  onItemChange,
+}: Props<T>) => {
   const [currentItemIndex, setCurrentItemIndex] = useState<number>(startIndex || 0);
 
   const handleNextClick = () => {
-    const nextIndex = (currentItemIndex + 1) % itemArray.length;
+    const nextIndex = (currentItemIndex + 1) % itemsArray.length;
     setCurrentItemIndex(nextIndex);
-    setItem(itemArray[nextIndex]);
+    onItemChange(itemsArray[nextIndex]);
   };
 
   const handlePrevClick = () => {
-    const prevIndex = (currentItemIndex - 1 + itemArray.length) % itemArray.length;
+    const prevIndex = (currentItemIndex - 1 + itemsArray.length) % itemsArray.length;
     setCurrentItemIndex(prevIndex);
-    setItem(itemArray[prevIndex]);
+    onItemChange(itemsArray[prevIndex]);
   };
 
   return (
@@ -30,7 +34,7 @@ const SettingsButton: FC<Props> = ({ itemArray, setItem, startIndex }) => {
       >
         <ChevronLeft />
       </button>
-      <div className="font-medium">{itemArray[currentItemIndex]}</div>
+      <div className="font-medium">{itemsArray[currentItemIndex]}</div>
       <button
         className="text-text-main bg-primary-lighter px-2 h-full hover:bg-secondary"
         onClick={handleNextClick}

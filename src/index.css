@@ -50,6 +50,18 @@ button:active {
   border: 1px solid var(--text-main);
 }
 
+.clicked {
+  background-color: #3B4CCA;
+}
+
+.valid {
+  background-color: #28A745;
+}
+
+.invalid {
+  background-color: #C9302C;
+}
+
 @media (min-width: 1024px) {
   .shadow {
     box-shadow: 

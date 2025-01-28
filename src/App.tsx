@@ -1,38 +1,23 @@
-import { Difficulty, IGameData, IMatchStats, IPlayingMode } from "./types";
-import { v4 as uuidv4 } from "uuid";
-import { useState } from "react";
-import useFetchCountries from "./hooks/useFetchCountries";
-import ScoreBoard from "./components/ScoreBoard";
-import GameHeader from "./components/GameHeader";
 import Game from "./components/Game";
+import GameHeader from "./components/GameHeader";
 import Menu from "./components/Menu";
+import ScoreBoard from "./components/ScoreBoard";
+import useFetchCountries from "./hooks/useFetchCountries";
+import useGameStore from "./hooks/useGameStore";
 
 const App = () => {
+  const playingMode = useGameStore((s) => s.playingMode);
+  const difficulty = useGameStore((s) => s.difficulty);
+
   const { countriesByRegion } = useFetchCountries();
-  const [matchStats, setMatchStats] = useState<IMatchStats>({
-    id: uuidv4(),
-    citiesLeft: 0,
-    difficulty: Difficulty.Medium,
-    rightMatches: 0,
-    wrongMatches: 0,
-    accuracy: 0,
-    timeInS: 0,
-  });
-  const [playingMode, setPlayingMode] = useState<IPlayingMode>({
-    isInMenu: true,
-    isPlaying: false,
-  });
-  const [gameData, setGameData] = useState<IGameData>({
-    clickedRegions: [],
-    clickedGameRegionData: {},
-  });
+  const gameData = useGameStore((s) => s.gameData);
 
   return (
     <div className="lg:flex lg:flex-col lg:items-center lg:justify-center lg:h-screen">
       <main
         className={`lg:w-[960px] lg:bg-background-secondary shadow rounded-md h-screen mx-auto p-6
           ${
-            matchStats.difficulty === 9 && playingMode.isPlaying
+            difficulty === "Hard" && playingMode === "isPlaying"
               ? "lg:max-h-[735px]"
               : "lg:max-h-[600px]"
           }
@@ -40,29 +25,11 @@ const App = () => {
       >
         <GameHeader />
 
-        {playingMode.isPlaying && (
-          <Game
-            matchStats={matchStats}
-            setMatchStats={setMatchStats}
-            setPlayingMode={setPlayingMode}
-            gameData={gameData}
-            setGameData={setGameData}
-          />
-        )}
+        {playingMode === "isPlaying" && <Game gameData={gameData} />}
 
-        {playingMode.isInMenu && (
-          <Menu
-            setMatchStats={setMatchStats}
-            setPlayingMode={setPlayingMode}
-            gameData={gameData}
-            setGameData={setGameData}
-            countriesByRegion={countriesByRegion}
-          />
-        )}
+        {playingMode === "isInMenu" && <Menu fetchedData={countriesByRegion} />}
 
-        {!playingMode.isInMenu && !playingMode.isPlaying && (
-          <ScoreBoard setPlayingMode={setPlayingMode} />
-        )}
+        {playingMode === "isInScoreboard" && <ScoreBoard />}
       </main>
     </div>
   );

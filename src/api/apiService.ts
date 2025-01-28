@@ -37,10 +37,7 @@ export const fetchAllCountries = async () => {
         error
       );
     } else {
-      console.log(
-        "An error occurred without a response from the server:",
-        error
-      );
+      console.log("An error occurred without a response from the server:", error);
     }
     return;
   }

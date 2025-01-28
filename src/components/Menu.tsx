@@ -1,87 +1,68 @@
-import { Dispatch, FC, useEffect, useState } from "react";
-import { CountriesByRegion, Difficulty, IGameData, IMatchStats, IPlayingMode } from "../types";
-import SettingsButton from "./SettingsButton";
 import { Eye, Play } from "lucide-react";
+import { FC, useCallback, useState } from "react";
+import useGameStore from "../hooks/useGameStore";
+import { shuffleArray } from "../utils/shuffleArray";
+import SettingsButton from "./SettingsButton";
+import { CountriesByRegion } from "../hooks/useFetchCountries";
+import { difficulties, Difficulties, regions, Regions } from "../constants";
+
 interface Props {
-  setMatchStats: Dispatch<React.SetStateAction<IMatchStats>>;
-  setPlayingMode: Dispatch<React.SetStateAction<IPlayingMode>>;
-  gameData: IGameData;
-  setGameData: Dispatch<React.SetStateAction<IGameData>>;
-  countriesByRegion: CountriesByRegion;
+  fetchedData: CountriesByRegion;
 }
 
-const difficultyArray = ["Easy", "Medium", "Hard"];
-const regions = ["Asia", "Africa", "Americas", "Europe", "Oceania"];
+const Menu: FC<Props> = ({ fetchedData }) => {
+  const setDifficulty = useGameStore((s) => s.setDifficulty);
+  const setPlayingMode = useGameStore((s) => s.setPlayingMode);
+  const setGameData = useGameStore((s) => s.setGameData);
 
-const difficultyMap: Record<string, Difficulty> = {
-  Easy: Difficulty.Easy,
-  Medium: Difficulty.Medium,
-  Hard: Difficulty.Hard,
-};
+  const [selectedRegions, setSelectedRegions] = useState<Regions[]>([]);
+  const [regionNotSelected, setRegionNotSelected] = useState<boolean>(false);
 
-const Menu: FC<Props> = ({
-  setMatchStats,
-  setPlayingMode,
-  gameData,
-  setGameData,
-  countriesByRegion,
-}) => {
-  const [totalCapitalsCount, setTotalCapitalsCount] = useState<number>(0);
-  const [optionDifficulty, setOptionDifficulty] = useState<string>("Medium");
-  const [showRegionNotSelected, setShowRegionNotSelected] = useState<boolean>(false);
+  const totalStatesCount = selectedRegions.reduce((acc, region) => {
+    return acc + getCountForRegion(region);
+  }, 0);
 
-  useEffect(() => {
-    setMatchStats((prev) => ({ ...prev, difficulty: difficultyMap[optionDifficulty] }));
-  }, [optionDifficulty]);
-
-  useEffect(() => {
-    setShowRegionNotSelected(false);
-  }, [gameData.clickedRegions]);
-
-  useEffect(() => {
-    const accumulatedTotal = gameData.clickedRegions.reduce((acc, region) => {
-      return acc + getCountForRegion(region);
-    }, 0);
-    setTotalCapitalsCount(accumulatedTotal);
-  }, [gameData.clickedRegions]);
-
-  const handlePlayButtonClick = () => {
-    if (!gameData.clickedRegions.every((region) => region === "")) {
-      const newRegionData = gameData.clickedRegions
-        .map((clickedRegion) => countriesByRegion[clickedRegion])
-        .filter(Boolean)
-        .reduce((acc, regionData) => {
-          return { ...acc, ...regionData };
-        }, {});
-
-      setGameData((prev) => ({ ...prev, clickedGameRegionData: newRegionData }));
-      setPlayingMode((prev) => ({ ...prev, isInMenu: false, isPlaying: true }));
-      setShowRegionNotSelected(false);
-    } else {
-      setShowRegionNotSelected(true);
-    }
-  };
-
-  const getCountForRegion = (region: string) => {
-    if (countriesByRegion && countriesByRegion[region]) {
-      return Object.entries(countriesByRegion[region]).length;
+  function getCountForRegion(region: string): number {
+    if (fetchedData && fetchedData[region]) {
+      return Object.entries(fetchedData[region]).length;
     }
     return 0;
+  }
+
+  const handlePlayButtonClick = (): void => {
+    if (selectedRegions.length === 0) return setRegionNotSelected(true);
+
+    const newGameData = selectedRegions
+      .map((selectedRegion) => fetchedData[selectedRegion])
+      .filter(Boolean)
+      .reduce((acc, regionData) => {
+        return { ...acc, ...regionData };
+      }, {});
+    setGameData(shuffleArray(Object.entries(newGameData)));
+
+    setPlayingMode("isPlaying");
   };
 
-  const handleClick = (region: string) => {
-    setGameData((prevGameData) => {
-      const { clickedRegions } = prevGameData;
-      const newClickedRegions = clickedRegions.includes(region)
-        ? clickedRegions.filter((prev) => prev !== region)
-        : [...clickedRegions, region];
+  const handleViewButtonClick = (): void => {
+    setPlayingMode("isInScoreboard");
+  };
 
-      return {
-        ...prevGameData,
-        clickedRegions: newClickedRegions,
-      };
+  const handleRegionButtonClick = (region: Regions): void => {
+    setSelectedRegions((prev) => {
+      if (prev.includes(region)) {
+        return prev.filter((r) => r !== region);
+      }
+      setRegionNotSelected(false);
+      return [...prev, region];
     });
   };
+
+  const changeDifficulty = useCallback(
+    (difficulty: Difficulties) => {
+      setDifficulty(difficulty);
+    },
+    [setDifficulty]
+  );
 
   return (
     <div className="flex flex-col items-center justify-center lg:h-[80%] mt-10 lg:mt-0">
@@ -100,9 +81,7 @@ const Menu: FC<Props> = ({
 
         <button
           className="text-text-main w-[20rem] bg-primary-lighter inline-flex h-[35px] items-center justify-center rounded-[4px] px-8 font-medium leading-none outline-none focus:shadow-[0_0_0_2px]"
-          onClick={() => {
-            setPlayingMode((prev) => ({ ...prev, isInMenu: false, isPlaying: false }));
-          }}
+          onClick={handleViewButtonClick}
         >
           <div>
             <Eye />
@@ -113,15 +92,19 @@ const Menu: FC<Props> = ({
         </button>
 
         <h2 className="text-lg text-text">Choose the difficulty level:</h2>
-        <SettingsButton itemArray={difficultyArray} setItem={setOptionDifficulty} startIndex={1} />
+        <SettingsButton<Difficulties>
+          itemsArray={difficulties}
+          startIndex={1}
+          onItemChange={changeDifficulty}
+        />
 
-        {!showRegionNotSelected ? (
+        {!regionNotSelected ? (
           <h2 className="text-lg text-text text-center">
-            Select a region/s for your game: ({totalCapitalsCount})
+            Select a region/s for your game: ({totalStatesCount})
           </h2>
         ) : (
           <h2 className="text-lg text-[#C9302C] text-center">
-            You need to select a region first to start playing: ({totalCapitalsCount})
+            You need to select a region first to start playing: ({totalStatesCount})
           </h2>
         )}
 
@@ -129,10 +112,10 @@ const Menu: FC<Props> = ({
           {regions.map((region) => (
             <button
               className={`h-[55px] w-[9rem] rounded-md text-text-main border-2 border-secondary font-medium ${
-                gameData.clickedRegions.includes(region) ? "bg-secondary" : ""
+                selectedRegions.includes(region) ? "bg-secondary" : ""
               }`}
               key={region}
-              onClick={() => handleClick(region)}
+              onClick={() => handleRegionButtonClick(region)}
             >
               {region} ({getCountForRegion(region)})
             </button>

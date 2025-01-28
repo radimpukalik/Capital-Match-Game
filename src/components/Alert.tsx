@@ -1,37 +1,47 @@
-import { Dispatch, FC } from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import React from "react";
-import MaxWidthWrapper from "./MaxWidthWrapper";
-import { Difficulty, IGameData, IMatchStats, IPlayingMode } from "../types";
 import { ArrowLeftFromLine } from "lucide-react";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import React, { Dispatch, FC } from "react";
 import { v4 as uuidv4 } from "uuid";
+import useGameStore from "../hooks/useGameStore";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { IcompleteStats, IStats } from "../types/IStats";
+import MaxWidthWrapper from "./MaxWidthWrapper";
 
 interface Props {
-  setPlayingMode: Dispatch<React.SetStateAction<IPlayingMode>>;
-  setMatchStats: Dispatch<React.SetStateAction<IMatchStats>>;
-  matchStats: IMatchStats;
-  setGameData: Dispatch<React.SetStateAction<IGameData>>;
+  stats: IStats;
+  setStats: Dispatch<React.SetStateAction<IStats>>;
 }
 
-const AlertDialogDemo: FC<Props> = ({ setPlayingMode, setMatchStats, matchStats, setGameData }) => {
+const AlertDialogDemo: FC<Props> = ({ stats, setStats }) => {
   const { setItem } = useLocalStorage("match-score", []);
+  const setPlayingMode = useGameStore((s) => s.setPlayingMode);
+  const newTime = useGameStore((s) => s.time);
+  const newDifficulty = useGameStore((s) => s.difficulty);
 
-  const resetMatchStats = {
-    id: uuidv4(),
-    citiesLeft: 0,
-    difficulty: Difficulty.Medium,
-    rightMatches: 0,
-    wrongMatches: 0,
-    accuracy: 0,
-    timeInS: 0,
+  const endOfGame = () => {
+    const finalGameStats: IcompleteStats = {
+      id: uuidv4(),
+      time: newTime,
+      difficulty: newDifficulty,
+      ...stats,
+    };
+
+    setItem(finalGameStats);
   };
 
-  const handleBackToMenuClick = () => {
-    setItem(matchStats);
-    setMatchStats(resetMatchStats);
-    setGameData((prev) => ({ ...prev, clickedRegions: [] }));
-    setPlayingMode((prev) => ({ ...prev, isPlaying: false, isInMenu: true }));
+  const clearGame = () => {
+    setStats({
+      rightMatch: 0,
+      wrongMatch: 0,
+      citiesLeft: 0,
+      accuracy: 0,
+    });
+  };
+
+  const handleBackToMenuClick = async () => {
+    endOfGame();
+    clearGame();
+    setPlayingMode("isInMenu");
   };
 
   return (
@@ -52,8 +62,8 @@ const AlertDialogDemo: FC<Props> = ({ setPlayingMode, setMatchStats, matchStats,
               Warning!
             </AlertDialog.Title>
             <AlertDialog.Description className="text-mauve mt-4 mb-5 text-[15px] leading-normal">
-              If you choose to continue, you won't be able to return to your current game, but your
-              current game stats will be saved to your score.
+              If you choose to continue, you won't be able to return to your current
+              game, but your current game stats will be saved to your score.
             </AlertDialog.Description>
             <div className="flex justify-end gap-[25px]">
               <AlertDialog.Cancel asChild>
